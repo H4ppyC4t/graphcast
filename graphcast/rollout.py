@@ -54,7 +54,7 @@ def _device_put_sharded(data_list, devices, axis_name):
     stacked = stack_fn(data_list, axis=0)
     return jax.device_put(stacked, sharding)
   else:
-    return jax.device_put_sharded(data_list, devices)
+    return jax.device_put_sharded(list(data_list), devices)
 
 
 class PredictorFn(typing_extensions.Protocol):
@@ -153,7 +153,8 @@ def chunked_prediction_generator_multiple_runs(
       sample_idx = slice(i, i + len(pmap_devices))
       logging.info("Samples %s out of %s", sample_idx, num_samples)
       logging.flush()
-      sample_group_rngs = rngs[sample_idx]
+      sample_group_rngs = _device_put_sharded(
+          rngs[sample_idx], pmap_devices, "sample")
 
       if "sample" not in inputs.dims:
         sample_inputs = inputs
